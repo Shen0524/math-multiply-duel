@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>兩位數乘一位數大對決</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <span class="logo" id="brandLogo">✖️</span>
+        <div><span id="brandTitle">兩位數乘一位數大對決</span>
+          <small id="brandSubtitle">小五數學・心算判斷・即時對戰</small>
+        </div>
+      </div>
+      <button class="linkbtn" id="navStats">📊 統計分析</button>
+    </div>
+
+    <!-- 設定提醒(Firebase 未設定時顯示) -->
+    <div id="setupBanner" class="banner warn hidden">
+      ⚠️ 尚未設定 Firebase。線上配對與統計需要先在 <code>firebase-config.js</code> 貼上你的設定，
+      並把網頁放到網路上(見 <code>README.md</code>)。目前可瀏覽介面，但無法連線對戰。
+    </div>
+
+    <!-- ===== 首頁 ===== -->
+    <section id="view-home" class="view">
+      <div class="card">
+        <h1 id="homeTitle">準備好挑戰乘法判斷了嗎？</h1>
+        <p class="sub" id="homeIntro">兩人即時對戰：看到一道<strong>兩位數乘一位數</strong>算式，判斷答案是<strong>正確</strong>還是<strong>錯誤</strong>。
+          答對加分、答錯歸零，比比看誰的乘法最穩！所有作答會匿名記錄，最後分析<strong>大家最常答錯的題目</strong>。</p>
+        <div class="btn-row">
+          <button class="btn" id="btnCreate">🎮 建立對戰房間</button>
+          <button class="btn secondary" id="btnJoinManual">🔑 輸入房號加入</button>
+          <button class="btn ghost" id="btnStats">📊 查看常錯題目統計</button>
+        </div>
+      </div>
+      <p class="footnote" id="homeFooter">適合小學五年級乘法暖身、課堂複習、分組 PK。<br>掃 QR Code 即可雙人對戰，無需安裝任何 App。</p>
+    </section>
+
+    <!-- ===== 建立房間 / 等待 ===== -->
+    <section id="view-create" class="view hidden">
+      <div class="card" id="createNameCard">
+        <h2>建立對戰房間</h2>
+        <div class="field">
+          <label>你的暱稱(主持方)</label>
+          <input class="input" id="hostName" maxlength="12" placeholder="例如：阿明" />
+        </div>
+        <div class="field">
+          <label>題目數量</label>
+          <select class="input" id="qCount">
+            <option value="5">5 題（快速）</option>
+            <option value="10" selected>10 題（標準）</option>
+            <option value="15">15 題（挑戰）</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="btnDoCreate">建立並產生 QR Code</button>
+          <button class="btn ghost" id="btnBackHome1">← 回首頁</button>
+        </div>
+      </div>
+
+      <div class="card hidden" id="waitCard">
+        <h2>邀請對手加入</h2>
+        <p class="sub">請對手用手機<strong>掃描下方 QR Code</strong>，或在另一台裝置輸入房號加入。</p>
+        <div class="qrbox">
+          <div id="qrcode"></div>
+          <div class="roomcode" id="roomCodeText">----</div>
+          <div class="copyrow">
+            <input class="input" id="shareLink" readonly />
+            <button class="btn secondary" style="width:auto;white-space:nowrap" id="btnCopyLink">複製連結</button>
+          </div>
+        </div>
+        <div class="players" style="margin-top:18px">
+          <div class="pcard ready" id="slotHost">
+            <div class="avatar">🧑‍🍳</div>
+            <div class="pname" id="hostNameShow">主持方</div>
+            <div class="ptag">已就緒</div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="pcard" id="slotGuest">
+            <div class="avatar">⏳</div>
+            <div class="pname" id="guestNameShow">等待對手…</div>
+            <div class="ptag" id="guestTag">尚未加入</div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:18px">
+          <button class="btn" id="btnStartGame" disabled>等待對手加入…</button>
+          <button class="btn ghost" id="btnCancelRoom">取消房間</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 加入房間 ===== -->
+    <section id="view-join" class="view hidden">
+      <div class="card">
+        <h2>加入對戰</h2>
+        <div class="field">
+          <label>房號</label>
+          <input class="input" id="joinCode" maxlength="6" placeholder="輸入 4 碼房號" style="text-transform:uppercase;letter-spacing:6px;font-weight:800" />
+        </div>
+        <div class="field">
+          <label>你的暱稱</label>
+          <input class="input" id="guestName" maxlength="12" placeholder="例如：小華" />
+        </div>
+        <div class="btn-row">
+          <button class="btn blue" id="btnDoJoin">加入對戰</button>
+          <button class="btn ghost" id="btnBackHome2">← 回首頁</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 訪客等待開始 ===== -->
+    <section id="view-lobby" class="view hidden">
+      <div class="card center">
+        <h2>已加入房間 <span id="lobbyCode" style="color:var(--brand)"></span></h2>
+        <div class="players" style="margin-top:14px">
+          <div class="pcard ready" id="lobbyHost">
+            <div class="avatar">🧑‍🍳</div>
+            <div class="pname" id="lobbyHostName">主持方</div>
+            <div class="ptag">主持方</div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="pcard ready" id="lobbyGuest">
+            <div class="avatar">🙋</div>
+            <div class="pname" id="lobbyGuestName">你</div>
+            <div class="ptag">你</div>
+          </div>
+        </div>
+        <div class="spinner"></div>
+        <p class="muted">等待主持方按下開始…</p>
+      </div>
+    </section>
+
+    <!-- ===== 答題 ===== -->
+    <section id="view-quiz" class="view hidden">
+      <div class="card">
+        <div class="live-score">
+          <div class="s"><b id="meScore">0</b><span id="meLabel">你</span></div>
+          <div class="s"><b id="oppScore">0</b><span id="oppLabel">對手</span></div>
+        </div>
+        <div class="quiz-head">
+          <div class="progress" id="quizProgress">第 1 / 8 題</div>
+          <div class="timer" id="quizTimer">20</div>
+        </div>
+        <div class="bar"><i id="quizBar" style="width:0%"></i></div>
+
+        <span class="category-tag" id="quizCategory">分類</span>
+        <div class="claim" id="quizClaim">題目載入中…</div>
+
+        <div class="choices">
+          <button class="choice true" id="choiceTrue" data-val="true">
+            <span class="emoji">✅</span>說法正確
+          </button>
+          <button class="choice false" id="choiceFalse" data-val="false">
+            <span class="emoji">❌</span>答案錯誤
+          </button>
+        </div>
+
+        <div class="feedback hidden" id="quizFeedback"></div>
+      </div>
+    </section>
+
+    <!-- ===== 結果 ===== -->
+    <section id="view-result" class="view hidden">
+      <div class="card">
+        <div class="result-hero">
+          <div class="crown" id="resultCrown">🏆</div>
+          <h1 id="resultTitle">對戰結束</h1>
+          <div class="score-final" id="scoreFinal"></div>
+          <p class="muted" id="resultSub"></p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>逐題回顧</h2>
+        <div id="reviewList"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btnPlayAgain">🔁 再玩一場</button>
+        <button class="btn ghost" id="btnResultStats">📊 看大家常錯的題目</button>
+      </div>
+    </section>
+
+    <!-- ===== 統計分析 ===== -->
+    <section id="view-stats" class="view hidden">
+      <div class="card">
+        <h2>📊 常錯題目分析</h2>
+        <p class="sub">統計所有對戰中，每一題的<strong>答錯率</strong>(越上面、越紅 = 越多人答錯)，找出最需要再練習的乘法題型。</p>
+        <div class="kpis">
+          <div class="kpi"><b id="kpiMatches">0</b><span>總對戰場次</span></div>
+          <div class="kpi"><b id="kpiAnswers">0</b><span>總作答次數</span></div>
+          <div class="kpi"><b id="kpiWrong">0%</b><span>整體答錯率</span></div>
+        </div>
+        <div id="statsList"><div class="spinner"></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" id="btnStatsBack">← 回首頁</button>
+        <button class="btn ghost" id="btnResetStats" style="color:var(--danger);border-color:var(--danger)">🗑 重置統計（管理員）</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <!-- QR Code 產生器 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- 應用程式 -->
+  <script src="config.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
