@@ -146,7 +146,7 @@
     $("roomCodeText").textContent = S.roomId;
     $("hostNameShow").textContent = hostName;
 
-    const link = location.origin + location.pathname + "?room=" + S.roomId;
+    const link = location.origin + location.pathname + "#room=" + S.roomId;
     $("shareLink").value = link;
 
     // 產生 QR Code
@@ -668,7 +668,8 @@
     bind();
     // 從 QR Code 連結進入 → 直接帶到加入畫面
     const params = new URLSearchParams(location.search);
-    const room = params.get("room");
+    const hashParams = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+    const room = params.get("room") || hashParams.get("room");
     if (room) {
       $("joinCode").value = room.toUpperCase();
       show("join");
